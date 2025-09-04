@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Session Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card-shadow {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .step-indicator {
+            transition: all 0.3s ease;
+        }
+        
+        .step-indicator.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            transform: scale(1.1);
+        }
+        
+        .step-indicator.completed {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .typing-indicator::after {
+            content: '';
+            display: inline-block;
+            width: 3px;
+            height: 20px;
+            background: #667eea;
+            margin-left: 2px;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        .session-box {
+            background: #f8fafc;
+            border: 2px dashed #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            line-height: 1.6;
+        }
+        
+        .copy-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .copy-btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        .warning-banner {
+            background: linear-gradient(45deg, #fbbf24, #f59e0b);
+            animation: subtle-glow 3s ease-in-out infinite alternate;
+        }
+        
+        @keyframes subtle-glow {
+            0% { box-shadow: 0 0 10px rgba(251, 191, 36, 0.3); }
+            100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.5); }
+        }
+        
+        .success-animation {
+            animation: successPop 0.6s ease-out;
+        }
+        
+        @keyframes successPop {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .library-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .library-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .library-card.selected {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .input-field {
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    <h1 class="text-2xl font-bold">Telegram Session Generator</h1>
+                </div>
+                <div class="flex space-x-4">
+                    <button onclick="showHelp()" class="bg-white bg-opacity-20 px-4 py-2 rounded-lg hover:bg-opacity-30 transition-all">
+                        Help
+                    </button>
+                    <button onclick="resetApp()" class="bg-white bg-opacity-20 px-4 py-2 rounded-lg hover:bg-opacity-30 transition-all">
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container mx-auto px-6 py-8">
+        <!-- Warning Banner -->
+        <div id="warningBanner" class="warning-banner text-white rounded-xl p-6 mb-8 card-shadow">
+            <div class="flex items-start space-x-4">
+                <svg class="w-6 h-6 flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                </svg>
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">⚠️ Important Warning</h3>
+                    <p class="text-sm opacity-90 leading-relaxed">
+                        Creating sessions frequently may increase the risk of your account being temporarily or permanently banned. 
+                        Telegram monitors unusual activity such as multiple login attempts in a short period. 
+                        <strong>Use this tool responsibly</strong> and avoid creating too many sessions quickly.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Steps -->
+        <div id="progressSteps" class="flex items-center justify-center mb-12">
+            <div class="flex items-center space-x-8">
+                <div class="step-indicator active w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold" data-step="1">1</div>
+                <div class="w-20 h-1 bg-gray-300 rounded"></div>
+                <div class="step-indicator w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-500 font-semibold" data-step="2">2</div>
+                <div class="w-20 h-1 bg-gray-300 rounded"></div>
+                <div class="step-indicator w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-500 font-semibold" data-step="3">3</div>
+                <div class="w-20 h-1 bg-gray-300 rounded"></div>
+                <div class="step-indicator w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-500 font-semibold" data-step="4">4</div>
+                <div class="w-20 h-1 bg-gray-300 rounded"></div>
+                <div class="step-indicator w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-500 font-semibold" data-step="5">✓</div>
+            </div>
+        </div>
+
+        <!-- Step Labels -->
+        <div class="flex justify-center mb-8">
+            <div class="grid grid-cols-5 gap-8 text-center text-sm text-gray-600">
+                <span id="stepLabel1" class="font-semibold text-blue-600">Library</span>
+                <span id="stepLabel2">Credentials</span>
+                <span id="stepLabel3">Phone</span>
+                <span id="stepLabel4">Verify</span>
+                <span id="stepLabel5">Complete</span>
+            </div>
+        </div>
+
+        <!-- Main Content Card -->
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-white rounded-2xl card-shadow p-8">
+                
+                <!-- Step 1: Library Selection -->
+                <div id="step1" class="step-content">
+                    <div class="text-center mb-8">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-4">Choose Your Library</h2>
+                        <p class="text-gray-600">Select the Telegram library you want to create a session for</p>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-6 mb-8">
+                        <div class="library-card bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl p-6" onclick="selectLibrary('telethon')">
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-blue-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+                                    <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                    </svg>
+                                </div>
+                                <h3 class="text-xl font-bold text-blue-700 mb-2">Telethon</h3>
+                                <p class="text-blue-600 text-sm">Popular async library with excellent documentation and community support</p>
+                            </div>
+                        </div>
+                        
+                        <div class="library-card bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-xl p-6" onclick="selectLibrary('pyrogram')">
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-purple-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+                                    <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                    </svg>
+                                </div>
+                                <h3 class="text-xl font-bold text-purple-700 mb-2">Pyrogram</h3>
+                                <p class="text-purple-600 text-sm">Modern, elegant library with clean API and great performance</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="nextStep1" class="w-full bg-gray-300 text-gray-500 py-3 px-6 rounded-xl font-semibold transition-all cursor-not-allowed" disabled>
+                        Continue to Credentials
+                    </button>
+                </div>
+
+                <!-- Step 2: API Credentials -->
+                <div id="step2" class="step-content hidden">
+                    <div class="text-center mb-8">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-4">API Credentials</h2>
+                        <p class="text-gray-600">Enter your Telegram API credentials from <a href="https://my.telegram.org" target="_blank" class="text-blue-500 hover:underline">my.telegram.org</a></p>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">API ID</label>
+                            <input type="number" id="apiId" class="input-field w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none" placeholder="Enter your API ID (e.g., 1234567)">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">API Hash</label>
+                            <input type="password" id="apiHash" class="input-field w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none" placeholder="Enter your API Hash">
+                        </div>
+                        
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+                            <div class="flex">
+                                <svg class="w-5 h-5 text-blue-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                </svg>
+                                <div class="text-sm">
+                                    <p class="text-blue-700 font-medium">How to get API credentials:</p>
+                                    <p class="text-blue-600 mt-1">
+                                        1. Visit <a href="https://my.telegram.org" target="_blank" class="underline">my.telegram.org</a><br>
+                                        2. Log in with your phone number<br>
+                                        3. Go to "API Development Tools"<br>
+                                        4. Create a new application
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-4 mt-8">
+                        <button onclick="previousStep()" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-xl font-semibold hover:bg-gray-300 transition-all">
+                            Previous
+                        </button>
+                        <button id="nextStep2" class="flex-1 bg-gray-300 text-gray-500 py-3 px-6 rounded-xl font-semibold transition-all cursor-not-allowed" disabled>
+                            Continue to Phone
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Phone Number -->
+                <div id="step3" class="step-content hidden">
+                    <div class="text-center mb-8">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-4">Phone Number</h2>
+                        <p class="text-gray-600">Enter your phone number in international format</p>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
+                            <input type="tel" id="phoneNumber" class="input-field w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-lg" placeholder="+1234567890">
+                        </div>
+                        
+                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                            <div class="flex">
+                                <svg class="w-5 h-5 text-yellow-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                                </svg>
+                                <div class="text-sm">
+                                    <p class="text-yellow-700 font-medium">Important:</p>
+                                    <p class="text-yellow-600 mt-1">
+                                        • Use international format (include country code)<br>
+                                        • Example: +1234567890<br>
+                                        • This will send an OTP to your Telegram app
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-4 mt-8">
+                        <button onclick="previousStep()" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-xl font-semibold hover:bg-gray-300 transition-all">
+                            Previous
+                        </button>
+                        <button id="nextStep3" class="flex-1 bg-gray-300 text-gray-500 py-3 px-6 rounded-xl font-semibold transition-all cursor-not-allowed" disabled>
+                            Send Verification Code
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 4: Verification -->
+                <div id="step4" class="step-content hidden">
+                    <div class="text-center mb-8">
+                        <div class="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-6 flex items-center justify-center">
+                            <svg class="w-10 h-10 text-blue-500 pulse-animation" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-4">Check Your Phone</h2>
+                        <p class="text-gray-600">We're sending a verification code to <span id="phoneDisplay" class="font-semibold"></span></p>
+                    </div>
+                    
+                    <div id="verificationStep" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Verification Code</label>
+                            <input type="text" id="verificationCode" class="input-field w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-center text-2xl tracking-widest" placeholder="12345" maxlength="5">
+                        </div>
+                        
+                        <div class="text-center">
+                            <p class="text-gray-500 text-sm mb-2">Didn't receive the code?</p>
+                            <button onclick="resendCode()" class="text-blue-500 hover:underline text-sm">Resend Code</button>
+                        </div>
+                    </div>
+
+                    <div id="twoFAStep" class="space-y-6 hidden">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-orange-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/>
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">2FA Required</h3>
+                            <p class="text-gray-600">Your account has 2-Step Verification enabled</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">2FA Password</label>
+                            <input type="password" id="twoFAPassword" class="input-field w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none" placeholder="Enter your 2FA password">
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-4 mt-8">
+                        <button onclick="previousStep()" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-xl font-semibold hover:bg-gray-300 transition-all">
+                            Previous
+                        </button>
+                        <button id="verifyButton" class="flex-1 gradient-bg text-white py-3 px-6 rounded-xl font-semibold hover:opacity-90 transition-all" onclick="verifyCode()">
+                            <span class="typing-indicator">Verify Code</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 5: Success -->
+                <div id="step5" class="step-content hidden">
+                    <div class="text-center mb-8 success-animation">
+                        <div class="w-24 h-24 bg-green-100 rounded-full mx-auto mb-6 flex items-center justify-center">
+                            <svg class="w-12 h-12 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-3xl font-bold text-green-600 mb-4">Session Created Successfully!</h2>
+                        <p class="text-gray-600">Your <span id="selectedLibraryDisplay"></span> session has been generated</p>
+                    </div>
+
+                    <!-- Account Info -->
+                    <div id="accountInfo" class="bg-gray-50 rounded-xl p-6 mb-8">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Account Information</h3>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-500">Name:</span>
+                                <span id="accountName" class="font-medium ml-2">John Doe</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Username:</span>
+                                <span id="accountUsername" class="font-medium ml-2">@johndoe</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Phone:</span>
+                                <span id="accountPhone" class="font-medium ml-2">+1234567890</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">ID:</span>
+                                <span id="accountId" class="font-medium ml-2 font-mono">123456789</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Session Details -->
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Session File Name</label>
+                            <div class="flex items-center space-x-2">
+                                <div class="session-box flex-1">
+                                    <span id="sessionFileName">+1234567890.session</span>
+                                </div>
+                                <button onclick="copyText('sessionFileName')" class="copy-btn bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-all">
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">String Session</label>
+                            <div class="flex items-center space-x-2">
+                                <div class="session-box flex-1">
+                                    <span id="stringSession">1BVtsOHwAa7d4df8h56ahd6g8h49...</span>
+                                </div>
+                                <button onclick="copyText('stringSession')" class="copy-btn bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-all">
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Important Notes -->
+                    <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded mt-6">
+                        <div class="flex">
+                            <svg class="w-5 h-5 text-red-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                            </svg>
+                            <div class="text-sm">
+                                <p class="text-red-700 font-medium">Important Security Notes:</p>
+                                <ul class="text-red-600 mt-1 space-y-1">
+                                    <li>• Keep your session secure and don't share it publicly</li>
+                                    <li>• Anyone with your session can access your Telegram account</li>
+                                    <li>• Use sessions responsibly and follow Telegram's ToS</li>
+                                    <li>• This website doesn't store your credentials or session data</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-4 mt-8">
+                        <button onclick="downloadSession()" class="flex-1 bg-green-500 text-white py-3 px-6 rounded-xl font-semibold hover:bg-green-600 transition-all">
+                            Download Session
+                        </button>
+                        <button onclick="resetApp()" class="flex-1 bg-gray-500 text-white py-3 px-6 rounded-xl font-semibold hover:bg-gray-600 transition-all">
+                            Create Another
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-8 max-w-2xl mx-4 max-h-90vh overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">Help & FAQ</h3>
+                <button onclick="closeHelp()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <div>
+                    <h4 class="font-semibold text-gray-800 mb-2">What is a Telegram Session?</h4>
+                    <p class="text-gray-600 text-sm">A session allows your application to authenticate with Telegram without entering credentials repeatedly. It's like a saved login for bots and userbot applications.</p>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold text-gray-800 mb-2">How to get API Credentials?</h4>
+                    <ol class="text-gray-600 text-sm space-y-1">
+                        <li>1. Go to <a href="https://my.telegram.org" target="_blank" class="text-blue-500 hover:underline">my.telegram.org</a></li>
+                        <li>2. Login with your phone number</li>
+                        <li>3. Click "API Development Tools"</li>
+                        <li>4. Fill the form to create a new application</li>
+                        <li>5. Copy your API ID and API Hash</li>
+                    </ol>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold text-gray-800 mb-2">Telethon vs Pyrogram?</h4>
+                    <p class="text-gray-600 text-sm"><strong>Telethon:</strong> Mature library with extensive documentation, great for complex bots.<br>
+                    <strong>Pyrogram:</strong> Modern library with cleaner API, easier for beginners.</p>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold text-gray-800 mb-2">Is this safe?</h4>
+                    <p class="text-gray-600 text-sm">Yes! This website runs entirely in your browser. No data is sent to external servers. Your credentials and sessions remain private.</p>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold text-gray-800 mb-2">Common Issues</h4>
+                    <ul class="text-gray-600 text-sm space-y-1">
+                        <li>• <strong>Invalid credentials:</strong> Double-check your API ID and Hash</li>
+                        <li>• <strong>Phone format:</strong> Use international format (+1234567890)</li>
+                        <li>• <strong>Code not received:</strong> Check your Telegram app, not SMS</li>
+                        <li>• <strong>2FA required:</strong> Enter your cloud password, not phone passcode</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentStep = 1;
+        let selectedLibrary = null;
+        let sessionData = {};
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            updateStepValidation();
+        });
+
+        function setupEventListeners() {
+            // Input validation listeners
+            document.getElementById('apiId').addEventListener('input', updateStepValidation);
+            document.getElementById('apiHash').addEventListener('input', updateStepValidation);
+            document.getElementById('phoneNumber').addEventListener('input', updateStepValidation);
+            document.getElementById('verificationCode').addEventListener('input', updateStepValidation);
+            
+            // Format phone number as user types
+            document.getElementById('phoneNumber').addEventListener('input', function(e) {
+                let value = e.target.value.replace(/[^\d+]/g, '');
+                if (value && !value.startsWith('+')) {
+                    value = '+' + value;
+                }
+                e.target.value = value;
+            });
+            
+            // Format verification code
+            document.getElementById('verificationCode').addEventListener('input', function(e) {
+                e.target.value = e.target.value.replace(/[^\d]/g, '').substring(0, 5);
+            });
+        }
+
+        function selectLibrary(library) {
+            selectedLibrary = library;
+            
+            // Update UI
+            document.querySelectorAll('.library-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.target.closest('.library-card').classList.add('selected');
+            
+            // Enable next button
+            const nextBtn = document.getElementById('nextStep1');
+            nextBtn.disabled = false;
+            nextBtn.classList.remove('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+            nextBtn.classList.add('gradient-bg', 'text-white', 'hover:opacity-90');
+            nextBtn.onclick = () => nextStep();
+            
+            sessionData.library = library;
+        }
+
+        function updateStepValidation() {
+            const step = currentStep;
+            
+            if (step === 2) {
+                const apiId = document.getElementById('apiId').value;
+                const apiHash = document.getElementById('apiHash').value;
+                const nextBtn = document.getElementById('nextStep2');
+                
+                if (apiId && apiHash && apiHash.length >= 10) {
+                    nextBtn.disabled = false;
+                    nextBtn.classList.remove('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+                    nextBtn.classList.add('gradient-bg', 'text-white', 'hover:opacity-90');
+                    nextBtn.onclick = () => nextStep();
+                } else {
+                    nextBtn.disabled = true;
+                    nextBtn.classList.add('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+                    nextBtn.classList.remove('gradient-bg', 'text-white', 'hover:opacity-90');
+                }
+            }
+            
+            if (step === 3) {
+                const phone = document.getElementById('phoneNumber').value;
+                const nextBtn = document.getElementById('nextStep3');
+                
+                if (phone && phone.startsWith('+') && phone.length >= 10) {
+                    nextBtn.disabled = false;
+                    nextBtn.classList.remove('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+                    nextBtn.classList.add('gradient-bg', 'text-white', 'hover:opacity-90');
+                    nextBtn.onclick = () => sendVerificationCode();
+                } else {
+                    nextBtn.disabled = true;
+                    nextBtn.classList.add('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+                    nextBtn.classList.remove('gradient-bg', 'text-white', 'hover:opacity-90');
+                }
+            }
+        }
+
+        function nextStep() {
+            if (currentStep < 5) {
+                // Collect data from current step
+                if (currentStep === 2) {
+                    sessionData.apiId = document.getElementById('apiId').value;
+                    sessionData.apiHash = document.getElementById('apiHash').value;
+                }
+                
+                // Hide current step
+                document.getElementById(`step${currentStep}`).classList.add('hidden');
+                
+                // Show next step
+                currentStep++;
+                document.getElementById(`step${currentStep}`).classList.remove('hidden');
+                
+                // Update progress
+                updateProgress();
+                
+                // Special handling for step 4
+                if (currentStep === 4) {
+                    document.getElementById('phoneDisplay').textContent = document.getElementById('phoneNumber').value;
+                }
+            }
+        }
+
+        function previousStep() {
+            if (currentStep > 1) {
+                // Hide current step
+                document.getElementById(`step${currentStep}`).classList.add('hidden');
+                
+                // Show previous step
+                currentStep--;
+                document.getElementById(`step${currentStep}`).classList.remove('hidden');
+                
+                // Update progress
+                updateProgress();
+            }
+        }
+
+        function updateProgress() {
+            // Update step indicators
+            for (let i = 1; i <= 5; i++) {
+                const indicator = document.querySelector(`[data-step="${i}"]`);
+                const label = document.getElementById(`stepLabel${i}`);
+                
+                if (i < currentStep) {
+                    indicator.classList.remove('active', 'bg-gray-300', 'text-gray-500');
+                    indicator.classList.add('completed', 'text-white');
+                    label.classList.add('text-green-600', 'font-semibold');
+                    label.classList.remove('text-gray-600');
+                } else if (i === currentStep) {
+                    indicator.classList.remove('completed', 'bg-gray-300', 'text-gray-500');
+                    indicator.classList.add('active', 'text-white');
+                    label.classList.add('text-blue-600', 'font-semibold');
+                    label.classList.remove('text-gray-600');
+                } else {
+                    indicator.classList.remove('active', 'completed');
+                    indicator.classList.add('bg-gray-300', 'text-gray-500');
+                    label.classList.remove('text-blue-600', 'text-green-600', 'font-semibold');
+                    label.classList.add('text-gray-600');
+                }
+            }
+        }
+
+        function sendVerificationCode() {
+            sessionData.phone = document.getElementById('phoneNumber').value;
+            
+            // Simulate sending code
+            showNotification('Verification code sent!', 'success');
+            
+            nextStep();
+        }
+
+        function verifyCode() {
+            const code = document.getElementById('verificationCode').value;
+            const button = document.getElementById('verifyButton');
+            
+            if (!code || code.length !== 5) {
+                showNotification('Please enter a valid 5-digit code', 'error');
+                return;
+            }
+            
+            // Show loading state
+            button.innerHTML = '<span class="typing-indicator">Verifying...</span>';
+            button.disabled = true;
+            
+            // Simulate verification process
+            setTimeout(() => {
+                // Simulate 2FA requirement (30% chance)
+                if (Math.random() < 0.3) {
+                    show2FA();
+                } else {
+                    completeSession();
+                }
+            }, 2000);
+        }
+
+        function show2FA() {
+            document.getElementById('verificationStep').classList.add('hidden');
+            document.getElementById('twoFAStep').classList.remove('hidden');
+            
+            const button = document.getElementById('verifyButton');
+            button.innerHTML = '<span class="typing-indicator">Verify 2FA</span>';
+            button.disabled = false;
+            button.onclick = () => verify2FA();
+        }
+
+        function verify2FA() {
+            const password = document.getElementById('twoFAPassword').value;
+            const button = document.getElementById('verifyButton');
+            
+            if (!password) {
+                showNotification('Please enter your 2FA password', 'error');
+                return;
+            }
+            
+            button.innerHTML = '<span class="typing-indicator">Verifying 2FA...</span>';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                completeSession();
+            }, 2000);
+        }
+
+        function completeSession() {
+            // Generate mock session data
+            const mockStringSession = generateMockSession();
+            const phone = sessionData.phone;
+            
+            // Update success page
+            document.getElementById('selectedLibraryDisplay').textContent = selectedLibrary;
+            document.getElementById('sessionFileName').textContent = `${phone}.session`;
+            document.getElementById('stringSession').textContent = mockStringSession;
+            
+            // Update account info with mock data
+            document.getElementById('accountName').textContent = 'John Doe';
+            document.getElementById('accountUsername').textContent = '@johndoe123';
+            document.getElementById('accountPhone').textContent = phone;
+            document.getElementById('accountId').textContent = Math.floor(Math.random() * 1000000000);
+            
+            // Store session data
+            sessionData.sessionFile = `${phone}.session`;
+            sessionData.stringSession = mockStringSession;
+            
+            showNotification('Session created successfully!', 'success');
+            nextStep();
+        }
+
+        function generateMockSession() {
+            const prefix = selectedLibrary === 'telethon' ? '1BVtsOHwAa' : '1AaPLKj3DA';
+            const randomPart = Array.from({length: 50}, () => 
+                Math.random().toString(36).charAt(Math.floor(Math.random() * 36))
+            ).join('');
+            return prefix + randomPart;
+        }
+
+        function copyText(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('Copied to clipboard!', 'success');
+            });
+        }
+
+        function downloadSession() {
+            const content = `# ${selectedLibrary.toUpperCase()} SESSION DATA\n\n` +
+                          `Library: ${selectedLibrary}\n` +
+                          `Phone: ${sessionData.phone}\n` +
+                          `Session File: ${sessionData.sessionFile}\n` +
+                          `String Session: ${sessionData.stringSession}\n\n` +
+                          `# IMPORTANT: Keep this file secure!\n` +
+                          `# Don't share your session data publicly.\n`;
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${sessionData.phone}_session.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showNotification('Session file downloaded!', 'success');
+        }
+
+        function resendCode() {
+            showNotification('Code resent! Check your Telegram app.', 'info');
+        }
+
+        function showNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-medium z-50 transform translate-x-full transition-transform duration-300 ${
+                type === 'success' ? 'bg-green-500' :
+                type === 'error' ? 'bg-red-500' : 
+                'bg-blue-500'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Show notification
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+            }, 100);
+            
+            // Hide and remove notification
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        function showHelp() {
+            document.getElementById('helpModal').classList.remove('hidden');
+            document.getElementById('helpModal').classList.add('flex');
+        }
+
+        function closeHelp() {
+            document.getElementById('helpModal').classList.add('hidden');
+            document.getElementById('helpModal').classList.remove('flex');
+        }
+
+        function resetApp() {
+            currentStep = 1;
+            selectedLibrary = null;
+            sessionData = {};
+            
+            // Reset all forms
+            document.querySelectorAll('input').forEach(input => input.value = '');
+            document.querySelectorAll('.library-card').forEach(card => card.classList.remove('selected'));
+            
+            // Show first step
+            document.querySelectorAll('.step-content').forEach(step => step.classList.add('hidden'));
+            document.getElementById('step1').classList.remove('hidden');
+            
+            // Reset verification and 2FA steps
+            document.getElementById('verificationStep').classList.remove('hidden');
+            document.getElementById('twoFAStep').classList.add('hidden');
+            
+            // Reset buttons
+            document.getElementById('nextStep1').disabled = true;
+            document.getElementById('nextStep1').classList.add('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+            document.getElementById('nextStep1').classList.remove('gradient-bg', 'text-white', 'hover:opacity-90');
+            
+            document.getElementById('verifyButton').innerHTML = '<span class="typing-indicator">Verify Code</span>';
+            document.getElementById('verifyButton').disabled = false;
+            document.getElementById('verifyButton').onclick = () => verifyCode();
+            
+            updateProgress();
+            updateStepValidation();
+            
+            showNotification('App reset successfully!', 'info');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('helpModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeHelp();
+            }
+        });
+
+        // Handle Enter key for form submission
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const activeStep = document.querySelector('.step-content:not(.hidden)');
+                const nextButton = activeStep.querySelector('button[id^="nextStep"], #verifyButton');
+                if (nextButton && !nextButton.disabled) {
+                    nextButton.click();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
